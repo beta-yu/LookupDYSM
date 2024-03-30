@@ -13,7 +13,6 @@ import (
 const path = "/Library/Developer/Xcode/iOS DeviceSupport/"
 
 type M struct {
-	UUID string `json:"uuid"`
 	Arch string `json:"arch"`
 	Path string `json:"path"`
 }
@@ -24,7 +23,7 @@ func main() {
 		panic(err)
 	}
 	root := homeDir + path
-	libs := make([]M, 0, 9000)
+	libMap := make(map[string]M)
 	err = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
@@ -33,7 +32,6 @@ func main() {
 		if info.IsDir() {
 			return nil
 		}
-		// 打印文件路径
 		cmd := exec.Command("dwarfdump", "--uuid", path)
 		output, err := cmd.Output()
 		if err == nil {
@@ -41,18 +39,17 @@ func main() {
 			arch := strings.TrimPrefix(s[2], "(")
 			arch = strings.TrimSuffix(arch, ")")
 			m := M{
-				UUID: s[1],
 				Arch: arch,
 				Path: strings.TrimSuffix(s[3], "\n"),
 			}
-			libs = append(libs, m)
+			libMap[s[1]] = m
 		}
 		return nil
 	})
 	if err != nil {
 		panic(err)
 	}
-	bytes, err := json.Marshal(libs)
+	bytes, err := json.Marshal(libMap)
 	if err != nil {
 		panic(err)
 	}
